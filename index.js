@@ -21,8 +21,13 @@ io.on('connection', (socket) => {
         });
     })
 
-    socket.on('msg_send',(data)=>{
+    socket.on('msg_send',async (data)=>{
         console.log(data);
+        const chat = await chatModel.create({
+            content:data['msg'],
+            user:data['user'],
+            roomId:data['roomid']
+        });
         io.to(data['roomid']).emit('msg_rcvd',data)
     });
 
@@ -30,8 +35,11 @@ io.on('connection', (socket) => {
 });
 
 app.get('/chat/:roomid',(req,res)=>{
+    const chats = chatModel.find({roomId:req.params.roomid}).select('content user');
+
     res.render("index",{
-        id:req.params.roomid
+        id:req.params.roomid,
+        chats
     });
 })
 

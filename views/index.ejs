@@ -4,48 +4,95 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chat Box</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body>
+<body class="bg-gray-100 flex items-center justify-center h-screen">
 
-    <h1>Chat Box</h1>
-    <button id="starttchat" data-roomid="<%= id%>">Start Chat</button>
-    <input type="text" id="user" placeholder="username">
-    <input type="text" id="newmsg" placeholder="Enter your message">
-    <button id="btn">Send</button>
-    <ul id="msglist">
-    </ul>
+    <!-- Username Section -->
+    <div id="username-section" class="w-full max-w-md mx-auto bg-white p-6 rounded-lg shadow-lg">
+        <h1 class="text-2xl font-bold text-center mb-4">Enter Your Username</h1>
+        <input type="text" id="username-input" placeholder="Username" class="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400 mb-4">
+        <button id="start-chat-btn" class="w-full bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 focus:outline-none">Start Chat</button>
+    </div>
+
+    <!-- Chat Section -->
+    <div id="chat-section" class="hidden w-full max-w-lg mx-auto bg-white p-6 rounded-lg shadow-lg">
+        <h1 class="text-2xl font-bold text-center mb-4">Chat Box</h1>
+
+        <!-- Hidden Room ID -->
+        <input id="starttchat" type="hidden" data-roomid="<%= id%>">
+
+        <!-- Message Input -->
+        <div class="mb-4 flex">
+            <input type="text" id="newmsg" placeholder="Enter your message" class="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400">
+            <button id="btn" class="ml-2 px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none">Send</button>
+        </div>
+
+        <!-- Messages List -->
+        <ul id="msglist" class="space-y-2">
+            <% for(let i=0; i<chats.length; i++){ %>
+                <li class="bg-gray-200 p-2 rounded-md">
+                    <span class="font-semibold"><%= chats[i].user%></span> : <%= chats[i].content %>
+                </li>
+            <% } %>
+        </ul>
+    </div>
 
     <script src="/socket.io/socket.io.js"></script>
     <script>
         var socket = io();
         let startchat = document.getElementById('starttchat');
 
+        // Username Input
+        let usernameSection = document.getElementById('username-section');
+        let chatSection = document.getElementById('chat-section');
+        let usernameInput = document.getElementById('username-input');
+        let startChatBtn = document.getElementById('start-chat-btn');
 
+        // Chat Elements
         let btn = document.getElementById('btn');
-        let username = document.getElementById('user');
         let inputMessage = document.getElementById('newmsg');
         let msgList = document.getElementById('msglist');
+        let username = '';  // Store the username
 
-        btn.onclick = function exec(){
-            socket.emit('msg_send', {
-                msg : inputMessage.value,
-                username:username.value,
-                roomid: startchat.getAttribute('data-roomid')
-            });
+        // Start chat after entering username
+        startChatBtn.onclick = function () {
+            if (usernameInput.value.trim() !== '') {
+                username = usernameInput.value;
+                usernameSection.classList.add('hidden');  // Hide username section
+                chatSection.classList.remove('hidden');  // Show chat section
+
+                // Join room
+                socket.emit('join_room', {
+                    roomid: startchat.getAttribute('data-roomid'),
+                    username: username
+                });
+            } else {
+                alert('Please enter a username.');
+            }
         }
 
-        startchat.onclick = function exec(){
-            socket.emit('join_room',{
-                roomid: startchat.getAttribute('data-roomid'),
-            })
+        // Send message
+        btn.onclick = function exec() {
+            if (inputMessage.value.trim() !== '') {
+                socket.emit('msg_send', {
+                    msg: inputMessage.value,
+                    username: username,
+                    roomid: startchat.getAttribute('data-roomid')
+                });
+                inputMessage.value = '';  // Clear input field after sending
+            }
         }
 
-        socket.on('msg_rcvd', (data)=>{
+        // Receive message
+        socket.on('msg_rcvd', (data) => {
             let listmsg = document.createElement('li');
             listmsg.innerText = `${data.username} : ${data.msg}`;
+            listmsg.classList.add('bg-gray-200', 'p-2', 'rounded-md');  // Add styling
             msgList.appendChild(listmsg);
         });
     </script>
-    
+
 </body>
 </html>
